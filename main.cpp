@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     }
     
     server.sin_family = AF_INET;
-    short peerPort = 1234;
+    short peerPort = 15151;
     if (argc >= 3)
         peerPort = (short) atoi(argv[2]);
     server.sin_port = htons(peerPort);
@@ -80,33 +80,50 @@ int main(int argc, char *argv[])
         std::cerr << "Error: " << strerror(errno) << std::endl;
         exit(1);
     }
+    
     bool conection = true;
+    
     std::cout << "Connected!\n";
     
+    char *buffer = NULL;
+
+    size_t len = 2014;
     while (conection == true) {
-        string send;
+        string str;
         cout << "Send message?(y/n): ";
-        getline(cin,send);
+        getline(cin,str);
         
-        if(send == "y" or send == "Y")
+        if(str == "y" or str == "Y")
         {
-            string min;
-            cout << "Message to server -> ";
-            getline(cin,min);
-            char* message = const_cast<char*>(min.c_str());
-            write(s0, message, 1023);
+           string min;
+	   cout<< "Message to server -> ";
+	   getline(cin,min);
+	   min += "\n";
+	   char *message = const_cast<char*>(min.c_str());
+            //char* message = "104.197.125.87|136877\n";
+	   // message[strlen(message)]='\n';
+	    //message[strlen(message)+1]= '\0';
+            send(s0, message,strlen(message), 0);
             cout << endl;
+	
+            buffer = new char[1024];
+	    
+	    printf("Waiting a response:\n");
+            res = read(s0, buffer, 1024);
             
-            char buffer[1024];
-            res = read(s0, buffer, 1023);
-            if (res < 0)
+	    if (res < 0)
             {
                 std::cerr << "Error: " << strerror(errno) << std::endl;
                 exit(1);
             }
             std::cout << "Received from server: " << buffer << "\n\n" ;
+	 
+	    if (buffer != NULL){
+		    delete(buffer);
+	    }
+	    
         }
-        if(send == "n" or send == "N")
+	else if(str == "n" or str == "N")
         {
             cout << "Closing connection...\nBye\n";
             conection = false;
@@ -114,14 +131,15 @@ int main(int argc, char *argv[])
             return 0;
         }
     }
-    
+    if (buffer != NULL)
+	    delete(buffer);
     
   
-    // 
-    //    write(s0, "Thanks! Bye-bye...\r\n", 20);
-    // 
-    //    close(s0);
-    //    return 0;
+     
+    //send(s0, "Thanks! Bye-bye...\r\n", 20);
+     
+    //close(s0);
+    return 0;
 }
 
 static void usage()
