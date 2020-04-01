@@ -89,12 +89,12 @@ int main(int argc, char *argv[])
 
     size_t len = 2014;
     while (conection == true) {
-        string str;
-        cout << "Send message?(y/n): ";
-        getline(cin,str);
+       // string str;
+        //cout << "Send message?(y/n): ";
+        //getline(cin,str);
         
-        if(str == "y" or str == "Y")
-        {
+        //if(str == "y" or str == "Y")
+        //{
            string min;
 	   cout<< "Message to server -> ";
 	   getline(cin,min);
@@ -105,7 +105,12 @@ int main(int argc, char *argv[])
 	    //message[strlen(message)+1]= '\0';
             send(s0, message,strlen(message), 0);
             cout << endl;
-	
+		
+	    if(min=="0011DISCONNECT\0"){
+		    close(s0);
+	    		return 0;
+	    }
+
             buffer = new char[1024];
 	    
 	    printf("Waiting a response:\n");
@@ -117,19 +122,20 @@ int main(int argc, char *argv[])
                 exit(1);
             }
             std::cout << "Received from server: " << buffer << "\n\n" ;
-	 
+		
+		 
 	    if (buffer != NULL){
 		    delete(buffer);
 	    }
 	    
-        }
-	else if(str == "n" or str == "N")
-        {
-            cout << "Closing connection...\nBye\n";
-            conection = false;
-            close(s0);
-            return 0;
-        }
+        //}
+	//else if(str == "n" or str == "N")
+        //{
+        //    cout << "Closing connection...\nBye\n";
+        //    conection = false;
+        //    close(s0);
+        //    return 0;
+        //}
     }
     if (buffer != NULL)
 	    delete(buffer);
