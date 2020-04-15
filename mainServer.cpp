@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/wait.h>
 
 static void usage();
 
@@ -55,8 +56,10 @@ int main(int argc, char *argv[])
     struct linger linger_opt = { 1, 0 }; // Linger active, timeout 0
     setsockopt(s0, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt));
     
-    // Now, listen for a connection
-    res = listen(s0, 1);    // "1" is the maximal length of the queue
+
+    
+    //i Now, listen for a connection
+    res = listen(s0, 25);    // "1" is the maximal length of the queue
     if (res < 0)
     {
         std::cerr << "Error: " << strerror(errno) << std::endl;
@@ -87,33 +90,107 @@ int main(int argc, char *argv[])
     <<   ( ntohl(peeraddr.sin_addr.s_addr) & 0xff ) << ", port "   // Low byte of address
     << ntohs(peeraddr.sin_port);
     
+    std::cout << "\n";
+
     res = close(s0);    // Close the listen socket
     
     //  write(s1, "Hello!\r\n", 8);
     
     char buffer[1024];
     bool connection = true;
-    
+    char ok[] = "0003OK\0";
+    char error[] = "0005ERROR\0";
+
+    pid_t pid;
+
+    int pfd[2];
+/*
+    if (pipe(pfd) == -1)
+	    fprintf(stderr, "Error creating pipe\n");
+
+    switch(pid = fork()){
+    	
+	    case -1:
+		    fprintf(stderr, "Error creating new child process\n");
+		    exit(EXIT_FAILURE);
+	    case 0:
+		    //pipe for stdout
+		    if (close(pfd[1])==-1)
+			    fprintf(stderr,"close pipe end writed\n");
+		    if (pfd[0] != STDIN_FILENO){
+			if (dup2(pfd[0], STDIN_FILENO) == -1)
+				fprintf(stderr, "dup2 end read pipe\n");
+			if (close(pfd[0]) == -1)
+				fprintf(stderr, "close end pipe read");
+		    }
+			char *cmd[4];
+			cmd[0]="./client";
+			cmd[1]="186.101.153.136";
+			cmd[2]="9090";
+			cmd[3] = NULL;
+
+		    execv("./client", cmd);
+		    fprintf(stderr,"Error exec de client\n");
+		
+	    default:
+		    break;
+		   
+
+    }
+    if(pfd[1] != STDOUT_FILENO){
+    	if (dup2(pfd[1], STDOUT_FILENO) == -1)
+		fprintf(stderr,"error write pipe\n");
+	if (close(pfd[1])==-1)
+		fprintf(stderr,"error closing parent end write");
+    }
+	
+    if (close(pfd[0]) == -1)
+	    fprintf(stderr, "closing parent read pipe\n");
+*/
     while(connection == true)
     {
         res = read(s1, buffer, 1023);
-        if (res < 0) {
-            std::cerr << "Error: " << strerror(errno) << std::endl;
-            exit(1);
+        if (res < 0) 
+	{
+            std::cerr << "\nError: " << strerror(errno) << std::endl;
+            //char response[] = "0005Error";
+	    send(s1, error, strlen(error), 0);
+	   //kill(pid, SIGKILL);
+	    close(s1);
+	    exit(1);
         }
         if(res == 0)
         {
-            std::cerr << "Warning: Connection closed" << std::endl;
+           std::cerr << "\nWarning: Connection closed" << std::endl;
+	   //kill(pid, SIGKILL);
             close(s1);
             return 0;
         }
         else{
-            buffer[res] = 0;
-            std::cout << "\nReceived " << res << " bytes:\n" << buffer;
-            std::cout << "\nConfirmation sent to client! " << "\n\n";
-            write(s1, buffer, 1023);
+		buffer[res]=0;
+		std::cout << "\nReceived " << res << " bytes:\n" << buffer;
+
+		if (strcmp(buffer, "0011DISCONNECT\0") == 0){
+			
+			send(s1, ok, strlen(ok), 0);
+			//kill(pid, SIGKILL);
+			close(s1);
+			return 0;
+		}
+			
+		buffer[res]=0;
+            //buffer[res] = '\n';
+	    //buffer[res+1] = 0;
+          // std::cout << "\nReceived " << res << " bytes:\n" << buffer;
+	 // std::cout << buffer;
+	    //fprintf(stderr, "\n");
+            //std::cout << "\nConfirmation sent to client! " << "\n\n";
+            send(s1, ok, strlen(ok), 0);
+	  
         }
     }
+
+    return 0;
     
 }
 
